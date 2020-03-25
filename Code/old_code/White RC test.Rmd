@@ -1,0 +1,230 @@
+---
+title: "Test White's Reality Check"
+output: html_notebook
+---
+
+
+```{r setup}
+library(NiekPhD)
+library(boot)
+```
+
+
+```{r dataprep}
+rm(list = ls())
+
+
+Ret <- rnorm(120, 0, 0.05)
+Ret <- round(Ret, 4)
+plot(Ret, type = "l")
+P <- numeric(121)
+P[1] <- 100
+for (i in 2:121) {
+  P[i] = P[i-1]*(1 + Ret[i-1])
+}
+
+plot(P, type = "l")
+
+lags <- create_MA_lags(1,20,5)
+Rules <- lapply(lags, function(x){calculate_crossingMA2(x[1],x[2], P)})
+Rules <- do.call(cbind, Rules)
+
+Rules2 <- Rules[-1:-21, ]
+benchmark <- Ret[-1:-20]
+
+models <- apply(Rules2, 2, function(x)x*benchmark)
+```
+
+# White's Bootstrap Reality Check
+http://www.cristiandima.com/white-s-reality-check-for-data-snooping-in-z)
+
+## Step 1 - the benchmark
+Before we can evaluate pretty much anything, we must first have a benchmark or standard to refer the tested object to. When measuring the performance of trading strategies this benchmark is rather easy to determine. To put it bluntly, if we've measured our performance on detrended data, a good benchmark for any trading strategy is zero. The expected return of a random strategy (i.e. coin flipping) on data having mean zero (detrended) is zero. If we can make more than zero on detrended data then we're probably doing something right (better than coin flipping).
+
+Using White's notation (page 13), we're going to set the benchmark model $\hat{h}_{0}$ to
+
+$$\hat{h}_{0,t + 1} = R_{t+1} = \ln{\frac{P_{t+1}}{P_{t}}}, (t = R, ..., T)$$
+
+where the $R$ to $T$ interval is our observed history containing nn values.
+
+## Step 2 - the models (strategies)
+The word "model" is what the paper uses and this is as it should be but in our case I find it somewhat inappropriate. We're not trying to measure the difference between a model's predicted price and the benchmark price. Rather, we're trying to compare the returns on the benchmark (zero) with the returns on our strategies. So instead of declaring a generic model as an example, as White does (still on page 13), we're simply going to define the relevant values for our strategies as
+
+$$\hat h_{x, t+1} = \ln(\frac{eq_{t+1}}{eq_t}), (t = R, ..., T), (x = 1,..., s)$$ 
+
+where $eq_{t}$ is equity at time $t$, and $\hat h_{x, t+1} $ the collection of daily log returns for each strategy, where each strategy has an index $x$ going from $1$ to $s$ - that is, we're testing $s$ strategies. This example assumes of course we're working with daily data. However, this doesn't have to be the case. We could be talking about nn trades, weeks, whatever, it does not make a difference.
+
+
+## Step 3 - performance measure
+
+We have our daily log returns and we have our benchmark. It's time to measure how well each strategy has done in testing. For each strategy $x$ where $x = (1, ..., s)x=(1,...,s)$ we have the collection of excess daily returns given by
+
+$$\hat f_{x, t+1} = \hat h_{x, t+1} - \hat h_{0,t+1}, (t = R, ..., T), (x = 1, ..., s)$$
+
+```{r}
+f_hat <- apply(models, 2, function(x)x-benchmark)
+```
+
+
+This might seem a bit silly given that $\hat h_{0,t+1}$ is zero for all values of $t$ but I'm going through the motions here to try and maintain a parallel to the original paper. We're using a benchmark equal to zero here so obviously $\hat f_{x, t+1}$ above is merely the same thing as $\hat h_{x, t+1}$ the collection of daily log returns, but if the benchmark was something other than zero this step would've made a big difference.
+
+Before moving on, we must also calculate the mean of $\hat f_{x,t+1}$ above, that is, the mean daily log excess returns. This we declare as
+
+$$\bar f_{x} = \frac{1}{n} \sum_{t=R}^T \hat f_{x,t+1}, (x = 1, ..., s)$$ 
+
+```{r}
+f_bar <- apply(f_hat, 2, mean)
+```
+
+
+## Step 4 - the bootstrap
+
+We're almost there. What we need to do now is learn how to run a bootstrap. In math language, we're looking for the collection of mean excess log returns of the bootstrapped samples. Each bootstrapped sample has index $i$ and goes from $1$ to $N = 500$.
+
+$$\bar f_{x,i}^* = \frac{1}{n} \sum_{t=R}^T \hat f_{x, \theta_i(t)+1}, (x = 1, ..., s), (i = 1, ..., N)$$
+
+This might look a bit complicated in math language but it's rather easy to implement in code. All we're doing is resampling with replacement each daily log returns series $x$ a number of $N$ times and then calculating the mean for each resampled series.
+
+Let's put that in R code. First, let's calculate the $N$ sets of random observation indexes of length $n, {\theta_i(t), t = R, ..., T},i = 1, ..., N$ There are a few methods for doing this and which one you should use depends mainly on the structure of the data you're working with.
+
+If the data points you're working with are i.i.d. then using a stationary bootstrap of fixed block length 1 would be fine. If the data points are not independent (as it is the case with time series, most of the time) you should use a bootstrap method which produces blocks of random length having geometric mean length equal to $1/q$ where $q$ is between $0$ and $1$. The original paper uses $q = 1$ for the simplified example and $q = 0.5$ for the practical application. There are various methods even for determining an appropriate value of qq but we'll keep those out of this post.
+
+Anyways, let's look at the code. First, a method using $q = 1$, that is, a fixed block length equal to $1$.
+
+```{r}
+n <- length(benchmark) #number of daily observations (distance from R to T)
+N <- 500 #number of resamples
+theta <- matrix(nrow = N, ncol = n) #theta indexes, N indexes of length n
+for(i in 1:N){ # generate theta_i indexes
+    theta[i,] <- sample(n,n,replace=TRUE) #index i, length n
+                                          #each row is a theta
+                                          #index collection
+}
+```
+
+
+
+This works fairly well for data such as the one we're working with as daily log return points are fairly independent. However, you can also use an R package and do a proper time series bootstrap for random block lengths having geometric mean $1/q$. Let's say $q = 0.5$ and $1/q = 2$. In R:
+
+```{r}
+x <- rnorm(n) #random vector of length n
+y <- tsboot(x, mean, R=N, l=10, sim="geom") #N resamples, geom mean len = 2
+theta <- matrix(nrow = N, ncol=n)
+theta <- boot.array(y) #returns 500 index collections of length n.
+                       #each row is a theta index
+                       #collection
+```
+
+
+
+Using these indexes to calculate $\bar f_{x,i}^*$ above is now quite simple.
+
+```{r}
+s <- 10 #number of models
+f <- t(f_hat) #matrix holding n daily log returns
+                                #for each strategy x
+f.mean.boot <- matrix(nrow=s, ncol=N) #N bootstrapped resample means
+                                      #for each x strategy
+for(x in 1:s){ #go through each model
+    for(i in 1:N){ #resample N times
+        f.mean.boot[x,i] = mean(f[x,theta[i,]]) #mean of resampled f[x,]
+                                               #using theta[i,]
+    }
+}
+```
+
+
+f.mean.boot[x,i] above is our $\bar f_{x,i}^* $. This we'll be using in the next step.
+
+## Step 5 - the vees
+At last, we get to see some actual results - the vees, as I like to call them. I'm talking about, of course, the two V values, $V_x$ and $\bar V_{x,i}^*$. Let's start with $x=1$. We have
+
+$$\bar V_1 = n^{1/2} \bar f_1 $$
+  
+ 
+$$\bar V_{1,i}^*= n^{1/2} (\bar f_{1,i}^*- \bar f_1) $$
+
+If we're only testing one strategy, that is,$ s=1$, we don't need anything beyond these first two vees. All we have to do is compare the sample value of $\bar V_1 $ to the percentiles of $\bar V_{1,i}^*$ and see if our trading strategy is any good at a significance level $\alpha$ of our choosing.
+
+This is how code would look like for just a single strategy:
+
+```{r}
+f.mean <- numeric(s) #vector holding mean daily returns
+                     #for each strategy x
+for(x in 1:s){ #go through each strategy
+    f.mean[x] <- mean(f[x,]) #mean returns for model x
+}
+V1 <- (n^(1/2))*f.mean[1];
+V1.boot <- numeric(N)
+for(i in 1:N){
+    V1.boot[i] <- n^(1/2)*(f.mean.boot[1,i] - f.mean[1])
+}
+```
+
+
+
+V1 in the code above is of course $\bar V_1 $ V1.boot is $\bar V_{1,i}^* $. To compare the sample value of $\bar V_1 $ to the percentiles of $\bar V_{1,i}^* $ all we have to do is write the following code:
+
+```{r}
+p <- length(which(V1.boot > V1))/N #returns p-value for strategy
+
+```
+
+This counts the values higher than V1 among V1.boot and divides that count by N to return the percentage of all V1.boot values which exceed V1. This is our p-value. If this p-value is then lower than our $\alpha$ level of significance then the null claiming the model produces returns lower or equal than zero can be rejected.
+
+Moving on to strategy number two, i.e. $x = 2$, we have the following:
+
+$$\bar V_2 = \text{max}\{ n^{1/2} \bar f_2, \bar V_1 \} $$
+
+$$\bar V_{2,i}^*=\text{max}\{ n^{1/2} (\bar f_{2,i}^* - \bar f_2), \bar V_{1,i}^*\} $$
+
+At this point we're scrapping the first two vees and working with these last ones. These stand for the better of the two models. To test if the best model among the two beats the benchmark, just like before, we simply compare the sample value of $\bar V_2$ to the percentiles of $\bar V_{2,i}^*$. In R:
+
+
+```{r}
+V2 <- max(n^(1/2)*f.mean[2],V1)
+V2.boot <- numeric(N)
+for(i in 1:N){
+    V2.boot[i] <- max(n^(1/2)*(f.mean.boot[2,i] - f.mean[2]),V1.boot[i])
+}
+```
+
+
+This process goes on for all strategies $x = 1, ..., s$. At point $x = s$ we'd have
+
+$$\bar V_s = \text{max}\{ n^{1/2} \bar f_s, \bar V_{s-1} \} $$
+
+$$\bar V_{s,i}^* = \text{max}\{ n^{1/2} (\bar f_{s,i}^* - \bar f_s), \bar V_{s-1,i}^* \} $$
+
+and just like before we'd compare $\bar V_s $ to the percentiles of $\bar V_{s,i}^* $. Specifically, we have to sort the values of $\bar V_{s,i}^*$, plug $\bar V_s $ in there, count how many values are higher than $\bar V_s$, and divide that number by $N$. If we denote the count of those values higher than $\bar V_s $ as $M$ we have a bootstrap reality check p-value
+
+$p = \frac{M}{N}$	 
+Note that the paper sets $M$ as those values smaller than $\bar V_s$ and then calculates $p = 1 - \frac{M}{N}$. It's the same thing but I like my version better. It's also how I write it in code.
+
+This is how this iterative process would look like in R if we were to only keep in memory the current and previous V values of interest.
+
+```{r}
+prev.V <- n^(1/2)*f.mean[1] #V1
+prev.V.boot <- numeric(N) #V1.boot
+for(i in 1:N){
+    prev.V.boot[i] <- n^(1/2)*(f.mean.boot[1,i] - f.mean[1])
+}
+current.V.boot <- numeric(N)
+for(x in 2:s){ #start from V2 and go on till Vs
+    current.V <- max(n^(1/2)*f.mean[x],prev.V)
+    for(i in 1:N){
+        current.V.boot[i] <- max(n^(1/2)*(f.mean.boot[x,i] - f.mean[x]),prev.V.boot[i])
+        prev.V.boot <- current.V.boot
+    }
+}
+p <- length(which(current.V.boot > current.V))/N #returns p-value for best model
+```
+
+
+
+The p value at the end is what interests us most. If that p-value is smaller than the $\alpha$ value we chose for our experiment then the result obtained for the best model among all tested models is indeed statistically significant. This means we can reject the null hypothesis claiming the best model produces zero expected returns with a certain degree of confidence that our best model didn't do so well purely by 
+
+```{r}
+NiekPhD::white_spa(models, benchmark, B = 500, geomMean = 10)
+```
+

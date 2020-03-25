@@ -1,0 +1,75 @@
+#!/bin/bash
+# Basic range with steps for loop
+
+#pbs_parameters
+walltime=00:35:00
+vmem=20gb
+ncpus=24
+
+#parameters
+exchange=bitstamp
+currency=usd
+Freq=1hour
+q=0.2
+year=2013
+long=FALSE
+cost=0.0025
+#True if you compare against buy and hold benchmark
+hodl=TRUE
+N=1000
+
+
+for i in {2013..2018}
+do
+	qsu
+
+
+
+######################################
+#!/bin/bash
+# Basic range with steps for loop
+
+#pbs_parameters
+walltime=1:00:00
+vmem=40gb
+ncpus=24
+
+#parameters
+exchange=bitstamp
+currency=usd
+Freq=30min
+q=0.2
+year=2013
+long=FALSE
+cost=0.0025
+#True if you compare against buy and hold benchmark
+hodl=TRUE
+N=1000
+
+############################################
+
+#!/bin/bash
+# Basic range with steps for loop
+
+#pbs_parameters
+walltime=2:00:00
+vmem=61gb
+ncpus=24
+
+#parameters
+exchange=bitstamp
+currency=usd
+Freq=15min
+q=0.2
+year=2013
+long=FALSE
+cost=0.0025
+#True if you compare against buy and hold benchmark
+hodl=TRUE
+N=1000
+
+
+for i in {2013..2018}
+do
+	qsub TAonBitcoin2.pbs -l walltime=$walltime,vmem=$vmem -v year=$i,exchange=$exchange,currency=$currency,Freq=$Freq,q=$q,long=$long,cost=$cost,hodl=$hodl,N=$N,ncpus=$ncpus 
+done

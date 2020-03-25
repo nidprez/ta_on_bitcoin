@@ -1,0 +1,727 @@
+---
+title: "Technical Analysis on Bitcoin"
+subtitle: "Looking at the Mt. Gox and Bitstamp Online Exchanges"
+author:
+  - Niek Deprez^[Ghent University]
+date: '`r format(Sys.Date(), "%d/%m/%Y")`'
+tags: [Bitcoin, Technical Analysis]
+abstract: |
+  This is the abstract.
+
+  It consists of two paragraphs.
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: true
+    keep_tex: yes
+    citation_package: natbib
+  html_document:
+    df_print: paged
+    fig_captions: yes
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+bibliography: C:/Users/nidprez/Documents/BibTex/TAonBitcoin.bib
+biblio-style: apalike
+header-includes:
+  - \usepackage{dcolumn}
+  - \newcolumntype{d}{D{.}{.}{-1}}
+  - \usepackage{siunitx}
+  - \newcommand\mc[1]{\multicolumn{1}{d}{#1}}
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r clear, echo=FALSE}
+rm(list = ls()) #clear environment
+
+```
+
+
+```{r setup, results='hide', message=FALSE, include=FALSE, ECHO=FALSE}
+
+#libraries
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+library(lubridate)
+library(NiekPhD)
+
+
+theme_set(theme_minimal()) #Set theme for ggplot plots
+
+options(knitr.table.format = "latex") #Produce Latex tables with kable() function
+
+#Set knitr chunk options in R Markdown
+knitr::opts_chunk$set(
+  cache = TRUE, #save chunk output
+  autodep = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  
+  #figure options
+  fig.align = "center",
+  fig.width = 6 ,
+  out.width = "70%",
+  fig.asp = 0.618,
+  fig.pos = 'H',
+  dev = "tikz" #put all figures in Latex format
+)
+
+```
+
+# Introduction
+
+
+Technical analysis is the analysis of past prices in order to predict future returns. The main problem with technical analysis, however, is that it is not in line with the efficient market hypothesis (EMH). In its weakest form, the EMH implies that in efficient markets all past information is reflected in the current price [@Malkiel1970 ; @Fama1991]. In other words, persistent profitability of technical trading rules should be impossible. As a result, technical analysis is a controversial topic in academics.  
+
+The reasons why technical analysis is interesting for cryptocurrency markets are twofold. First, the efficiency of bitcoin markets is contested. Studies from @Urquhart2016 and @Bariviera2017a find that the bitcoin market did not satisfy the EMH at least until 2014. Since 2014, though, they find that the market is becoming more efficient. On the other hand @Nadarajah2017a argue that the bitcoin market satisfies the EMH. The second reason is that technical analysis is very popular with professional foreign exchange dealers over the short term horizon. One of the reasons for this is the lack of a consensus on a fundamental model in the foreign exchange market (Menkhoff and Taylor, 2007). This is a characteristic shared by cryptocurrency markets where there are currently no observable fundamentals. This leads us to believe that Bitcoin (and by extension cryptocurrency) traders rely mainly on technical analysis for their buy and sell signals.
+
+# Literature Review
+
+> What is needed is an electronic payment system based on cryptographic proof instead of trust, allowing any two willing parties to transact directly with each other without the need for a trusted third party - @Satoshi2008.
+
+In the midst of the global financial crisis and growing public distrust in financial institutions , @Satoshi2008 introduced a peer-to-peer electronic cash system named Bitcoin. The main advantage of Bitcoin is that it doesn't need any trusted third party in order to process electronic payments, which makes financial intermediaries obsolete. Next to this, the supply of bitcoins is regulated by a fixed algorithm, making it impossible for a central authority to increase or decrease the supply. Academics argue, however, that Bitcoin behaves more like a speculative investment rather than a currency [@Yermack2015; @Cheah2015b]. Bitcoin is unregulated and does not have an apperent intrinsic value, resulting in a very volatile market. The huge volatility swings make Bitcoin malfit as a store of value or as a unit of account. Aside from high volatility, research has found evidence of numereous bubbles and bursts in the bitcoin market [@Kristoufek2013; @Cheung2015; @Cheah2015b; @Su2018a]. 
+
+The fact that Bitcoin is relatively new, has high volatility, has no apperent intrinsic value and is plagued by bubbles, leads researchers to believe that the bitcoin market is not very efficient. Indeed, @Urquhart2016, @Cheah2018, @Bariviera2017a, @Bariviera2017b, @Tiwari2018a, @Khuntia2018 and @Sensoy2019 find some inefficiency in the early years of Bitcoin, however the market seems to become more efficient over time. These findings are also supported by @Nadarajah2017a who find that the bitcoin market is efficient. The inefficiency in the early years means that there should have been some opportunities for technical trading. However, little research has been done in order to investigate the profitability of technical trading rules in bitcoin markets. @Gerritsen2019 test 7 trend-following indicators using daily Bitcoin prices. They find that some specific trading rules outperform a buy-and-hold strategy in the Bitcoin market.
+
+We add to the existing literature by testing the intraday market and by adding transaction costs.
+
+
+
+# Methodology
+## Returns and transaction costs
+
+Trading rule returns are defined as the logarithmic difference between two consecutive prices, adjusted for transaction costs. This can be seen in Equation \ref{eq:ret}, where $r_{i,t}$ is the logarithmic return of trading rule i at time t,  $P_t$ is the price of a bitcoin at time $t$, $\bar{T}$ is the mean transaction cost of a trading rule and $D_{i,t-1}$ is the signal given by the trading rule at time t - 1. We take the signal at time t-1 in order to take into account price slippage between the trading signal and the actual trade.
+
+<!-- Should I take into account Interest Rates? -->
+
+\begin{equation}
+\label{eq:ret}
+r_{i,t} = [\ln{P_{t}} - \ln{P_{t-1} + \ln{(1-\bar{T})}] * D_{i,t-1} }
+\end{equation}
+
+## Strategies
+@Jiang2017 @Hsu2016 @Shynkevic2016b
+It In our analysis we use the two most used strategies in FOREX trading, namely: overlapping moving averages (MA) and the Relative Strength Index (RSI).
+
+### Moving averages
+A simple^[Other types of MAs exist. Some of the more commonly used are: exponential (EMA), weighted (WMA) and filtered MAs.] MA with length k at time t is calculated as the arithmetic mean of the k last prices up until time t. In the overlapping MA trading strategy, a long (short) position is taken if the long MA is lower (higher) or equal than the short MA (Eq. \ref{eq:ma2}). 
+\begin{equation}
+\label{eq:ma1}
+\text{MA}_{k,t} = \frac{1}{k}\sum_{s = t-k}^{t} P_s
+\end{equation}
+
+\begin{equation}
+\label{eq:ma2}
+D_{\text{MA},t} = \begin{cases} 
+\; \; \: 1 \text{  if  } \text{MA}_{S,t} \geq \text{MA}_{L,t} \\
+-1 \text{ if } \text{MA}_{S,t} < \text{MA}_{L,t}
+\end{cases}
+\end{equation}
+
+with
+$S < L$.
+
+
+
+### RSI Oscilator
+RSI is an oscillator which moves between 0 and 100. Traders use these values to determine oversold and overbought periods for a particular security. A trade signal is given when the oscillator moves from these overold or overbought regions. The RSI was first mentioned by @Wilder1978. He suggested a lowerbound value of 30 and a upperbound value of 70. In this case a sell(buy) signal would be generated if the RSI is higher(lower) or equalt to 70(30). This is shown in Equation \ref{eq:rsi2}, where lb and ub stand for the lowerbound and upperbound respectively.  
+
+\begin{equation}
+\label{eq:rsi}
+\text{RSI} = 100 - \frac{100}{1 + \text{RS}}
+\end{equation}
+with $\text{RS} = \frac{\text{Average Gain}} {\text{Average Loss}}$
+
+
+\begin{equation}
+\label{eq:rsi2}
+D_{\text{RSI},t} = \begin{cases} 
+1  \;\;\:\,  \text{  if  } \text{RSI}_{t} \leq \text{lb}\\
+-1 \,\text{ if } \text{RSI}_{t} \geq \text{ub}\\
+0  \;\;\:\,\text{  if } \text{lb} < \text{RSI}_{t} < \text{ub}
+\end{cases}
+\end{equation}
+<!-- ### Kaufman's Efficiency Ratio -->
+<!-- $$ ER = \frac{P_{t} - P_{t-N}}{\sum{|P_{k}-P_{k-1}|}}$$ -->
+<!-- usually between -0.3 and 0.3 -->
+
+<!-- ### Chaikin Money Flow -->
+<!-- $$Money Flow Multiplier = \frac{(Close  -  Low) - (High - Close)} {High - Low}$$ -->
+<!-- $$Money Flow Volume = Money Flow Multiplier * Volume for the Period$$ -->
+<!-- $$ 20-period CMF = \frac{20-period Sum of Money Flow Volume} {20 period Sum of Volume}$$ -->
+
+<!-- usually between -0.05 and 0.05 -->
+
+### Channel Breakout
+### Filter
+### Support and resistance
+
+### Short selling constraint
+In this paper, we run the analysis for the trading rules as described above, and for the trading rules without short-selling. In the case without short-selling the trader leaves the market when a sell signal is given. Mathematically, the -1 in Equation \ref{eq:ma2} and \ref{eq:rsi2} is substituted by a zero. The reason why we impose this constraint is that short-selling has not always been easy on bitcoin markets. In the infant years of bitcoin exchanges there were not a lot of exchanges that offered margin trading or short-selling and those that did offer these services, were not always trustworthy [@Brito2014; @Yermack2015]. By trading on these exchanges traders imposed a large fraud or default risk on themselves. In 2019, however, some of the larger exchanges do offer margin trading and short-selling^[Inter alia: Bitfinex, Kraken, Bitmex, GDAX and many more.]. Bitstamp, of whom we use transaction data in this paper, does not support short-selling up untill now. Therefore, as short selling has not always been available in our sample period and as short-selling is not available on all exchanges, especially on Bitstamp, it is interesting to study the strategies while imposing a short selling constaint.
+
+## Data snooping
+When testing a extensive amount of technical trading rules, there is always some chance that we find a very profitable rule as a result of luck rather than the forecasting ability of that particular trading rule. This problem is more commonly referred to as data snooping^[Or data mining.]. In order to correct for the effects of data snooping @white2000 proposes the Reality Check (RC) for data snooping. This method tests whether the best trading rule, selected from the full universe of tested trading rules, has predictive superiority over a specific benchmark. @Hansen2005 argues, however, that the results of the RC test can be easily manipulated by adding poor or irrelevant trading rules to the set of tested rules. He proposes an adjusted RC test, also known as the Superior Predictive Ability (SPA) test, which we use in this paper.
+
+
+First we calculate the relative performance of a trading rule against a benchmark, $f_{k,t}$, at time t, as shown in equation \ref{eq:hansen1}. Using these relative performances, we want to test if any of all the trading rules in our universe outperforms the benchmark. Formally, we test the null hypothesis that the best trading rule (out of L rules) did not significantly outperform the chosen benchmark: $H_0 : \max_{k= 1\to L}E(f_k) \leq 0$. 
+
+<!-- This is a multiple hypothesis, the intersection of the one-sided individual hypotheses $E(f_k) \leq 0, k = 1,...,l$. Hansen does not really on bounds such as Bonferroni but delivers assumptotically appropriate p-values -->
+
+\begin{equation}
+\label{eq:hansen1}
+f_{k,t} = r_{k,t} - b_t
+\end{equation}
+
+where $b_t$ is the benchmark return at time t and $r_{k,t}$ the return of trading rule k at time t. The relative performances are then resampled B times using the block resampling procedure of @Politis1994, generating $f_{k,b,t}^\star, b = 1,...,B$. We then construct a test statistic and a sample dependent distribution from $f_{k,t}$ and $f_{k,b,t}^\star$ (Eq. \ref{eq:hansen2} and \ref{eq:hansen3}).
+
+
+
+\begin{equation}
+\label{eq:hansen2}
+T^{SPA}_n = \max [\max\limits_{ k= 1\to L}\frac{\sqrt{N}*\bar{f_k}}{\hat{\sigma}_k}, 0 ]
+\end{equation}
+
+\begin{equation}
+\label{eq:hansen3}
+T^{SPA\star}_{b,n} = \max [\max\limits_{ k= 1\to L}\frac{\sqrt{N}*\bar{Z}_{k,b}^\star}{\hat{\sigma}_k}, 0 ]
+\end{equation}
+
+with 
+\begin{equation}
+\label{eq:hansen4}
+\bar{Z}_{k,b}^\star = \bar{f}_{k,b}^\star - h_x(\bar{f_k})
+\end{equation}
+
+where N is the number of observations, $\hat{\sigma}_k$ is a consistent estimator of the variance in the relative performances and $h_x(\bar{f_k}$ is a threshold parameter. Equation \ref{eq:hansen2} shows the  studentized test statistic proposed by @Hansen2005.  The test statistic is studentized because it  increases the power of the test under most circumstances and because it enables comparison across the models in units of standard deviation. In order to reduce the effect of poor or irrelevant trading rules^[The irrelevant rules are not completely removed from the sample.] , @Hansen2005 invokes a sample-dependent null distribution as defined in equation \ref{eq:hansen3} and \ref{eq:hansen4}. This is done by recentering the bootsrap values around the threshold parameter, $h_x(\bar{f_k})$. @Hansen2005 shows that there is a range of threshold parameters that can symptotically discriminate between good and bad rules, however they define three explicitly, namely: $h_c(\bar{f_k})$, $h_l(\bar{f_k})$ and $h_u(\bar{f_k})$.
+
+
+\begin{equation}
+\label{eq:hansen5}
+h_c(\bar{f_k}) = \begin{cases} 
+\bar{f_k} \text{  if  } \bar{f_k} \geq -\sqrt{\frac{\hat{\sigma}_k^2}{N}*2*\log\log{N}} \\
+0 \; \; \text{ if  } \bar{f_k} \leq -\sqrt{\frac{\hat{\sigma}_k^2}{N}*2*\log\log{N}}
+\end{cases}
+\end{equation}
+
+\begin{equation}
+\label{eq:hansen6}
+h_l(\bar{f_k}) = \max(0 , \bar{f_k})
+\end{equation}
+
+\begin{equation}
+\label{eq:hansen7}
+h_u(\bar{f_k}) = 0 
+\end{equation}
+
+$h_c(\bar{f_k})$ is the threshold that leads to a consistent estimate of the asumptotic distribution of the test statistic, while $h_l(\bar{f_k})$ and $h_u(\bar{f_k})$ provide a lower and upper bound for the distribution. A large difference between $h_l(\bar{f_k})$ and $h_u(\bar{f_k})$ then indicates that there are a lot of poor trading rules present. P-values are approximated by $\hat{p}^\text{SPA}= \sum_{b=1}^{B}\frac{1_{\{T^{SPA\star}_{b,n} > T^{SPA}_n\}}}{B}$, the proportion of the resampled statistics larger than the test statistic.
+
+# Data
+```{r data1}
+# mtgox <- data.table::fread("Data/mtgox/mtgoxusd.csv", col.names = c("Time", "Price", "Volume"))
+# mtgox$Time <- anytime::utctime(mtgox$Time)
+bitstamp <- data.table::fread("Data/bitstamp/bitstampusd.csv", col.names = c("Time", "Price", "Volume"))
+bitstamp$Time <- anytime::utctime(bitstamp$Time)
+
+# mtgox_summary <- mtgox %>% 
+#   mutate(Year = year(Time)) %>% 
+#   group_by(Year) %>% 
+#   summarise(N = n(), Min = min(Price, na.rm = T), 
+#             Q1 = quantile(Price, 0.25, na.rm = T, names = F), 
+#             Median = median(Price, na.rm = T), Mean = mean(Price, na.rm = T),
+#             Q2 = quantile(Price, 0.75, na.rm = T, names = F),
+#             Max = max(Price, na.rm = T), Range = IQR(Price), 
+#             Stdev = sd(Price, na.rm = T))
+
+bitstamp_summary <- bitstamp %>% 
+  mutate(Year = year(Time)) %>% 
+  group_by(Year) %>% 
+  summarise(N = n(), Min = min(Price, na.rm = T), 
+            Q1 = quantile(Price, 0.25, na.rm = T, names = F), 
+            Median = median(Price, na.rm = T), Mean = mean(Price, na.rm = T),
+            Q2 = quantile(Price, 0.75, na.rm = T, names = F),
+            Max = max(Price, na.rm = T), Range = IQR(Price), 
+            Stdev = sd(Price, na.rm = T))
+
+```
+
+Bitstamp (www.bitstamp.net) is one of the oldest cryptocurrency online trading platform. It was founded in 2011 and still exists today. In its long existence Bitstamp was only hacked once in 2015, when 19000 Bitcoins were stolen Bitstamp charges a uniform trading fee, i.e. liquidity makers and takers pay the same execution fee. The exchange stipulates a minimum trade size of 5 USD and the minimum tick size for Bitcoin traded against USD is 0.01 USD. The platform does not provide margin trading and short-selling.
+
+For this paper we use tick-by-tick data for 2 exchanges: Mt. Gox and Bitstamp[^data]. 
+
+<!-- Mt. Gox was one of the most popular Bitcoin exchanges until it went bankrupt in early 2014. MT. Gox claimed that the main reason for their bankruptcy was that between 650,000 and 850,000 Bitcoins were stolen in a hacker incident.  -->
+
+Bitstamp is one of the oldest online cryptocurrency exchanges. https://www.bitstamp.net/news/ The exchange was founded in August 2011. Since then, it has been in the top 5 of the largest (Western) Bitcoin exchanges. As a result it has one of the longest, and most consistent[^The exchange is also relatively safe, as it got hacked only once during its long existence.] data set available, which is also the main reason for us to choose this exchange. Table \ref{tab:descr_stats} shows some summary statistics of the BTC/USD exchange rate on both exchanges. From the table we can see that Bitstamp overtook Mt. Gox in the amount of trades in 2014. As Mt. Gox went bankrupt in 2014 and has little amount of trades in 2010, we will not use these periods for our analysis. The same is true for the data of Bitstamp in 2012.
+
+[^data]: The data is obtained via the bitcoincharts API (http://api.bitcoincharts.com/v1/csv/).
+
+```{r descr_stats}
+# summary1 <- rbind(cbind(mtgox_summary, Exchange = "Mt. Gox"), cbind(bitstamp_summary, Exchange = "Bitstamp"))
+
+summary1 <- cbind(bitstamp_summary, Exchange = "Bitstamp")
+kable(summary1[,-11], digits = 2, 
+      caption = "Year-by-year descriptive statistics of the Bitcoin-Dollar exchange rate (tick-by-tick).",
+      booktabs = T) %>% 
+  # group_rows("Mt. Gox", 1, 5) %>% 
+  # group_rows("Bitstamp", 6, 13) %>% 
+  kable_styling(latex_options = "HOLD_position")
+```
+
+```{r}
+make_ret_tab <- function(Freq){
+  bitdata <- NiekPhD::na.locf_bitcoincharts(data.table::fread(
+    paste0("Data/bitstamp/bitstampusd_", Freq, ".csv")), Year = T)
+
+  bitdata[-1, ] %>% 
+  filter(Year != 2019 & Year != 2011) %>% 
+  group_by(Year) %>% 
+  summarize(Total = sum(Ret), Mean = mean(Ret), Sortino = PerformanceAnalytics::SortinoRatio(Ret), Min = min(Ret), Max = max(Ret), `Std. Dev.`= sd(Ret), 
+            Skewness = ifelse(Freq == "day", PerformanceAnalytics::skewness(Ret) * sqrt(365), 
+                          ifelse(Freq == "1hour", PerformanceAnalytics::skewness(Ret) * sqrt(365*24),
+                              ifelse(Freq == "30min", PerformanceAnalytics::skewness(Ret) * sqrt(365*48),
+                                  ifelse(Freq == "15min", 
+                                      PerformanceAnalytics::skewness(Ret) * sqrt(365*48*2),
+                                     ifelse(Freq == "10min", 
+                                       PerformanceAnalytics::skewness(Ret) * sqrt(365*48*3)))))), 
+            Kurtosis = PerformanceAnalytics::kurtosis(Ret), `No trades`= sum(Ret == 0)/n()) 
+}
+
+ret_tab <- rbind(make_ret_tab("day"),
+      make_ret_tab("1hour"),
+      make_ret_tab("30min"),
+      make_ret_tab("15min"),
+      make_ret_tab("10min"))
+
+```
+
+```{r rettab}
+ret_tab2 <- round(ret_tab, 6)
+ret_tab2[,-3] <- round(ret_tab2[,-3], 4)
+ret_tab2[ ,c(-1,-7,-8)] <- ret_tab2[,c(-1,-8,-9)]*100
+# ret_tab2[ ,c(-1,-7,-8)] <- apply(ret_tab2[,c(-1,-7,-8)]*100, 2, function(x)paste(x, "\\%"))
+
+
+ret_tab2 %>% 
+  kable(caption = "Descriptive Statistics of the Logarithmic Returns by Year and Frequency", booktabs = T, escape = F) %>% 
+  kable_styling( font_size = 7,5)%>%
+  pack_rows(group_label = "Daily", start_row = 1, end_row = 7) %>%
+  pack_rows(group_label = "60 minutes", start_row = 8, end_row = 14) %>%
+  pack_rows(group_label = "30 minutes", start_row = 15, end_row = 21) %>%
+  pack_rows(group_label = "15 minutes", start_row = 22, end_row = 28) %>%
+  pack_rows(group_label = "10 minutes", start_row = 29, end_row = 35) %>% 
+  footnote(general = "All numbers except for the skewness and kurtosis are in percentages (i
+           .e.106.15 = 106.15%).")
+
+yearly_returns <- ret_tab2$Total[2:8]
+```
+
+<!-- ```{r N_barplot, fig.cap="Amount of ticks per year"} -->
+<!-- ggplot(summary1, aes(x = Year, y = N/1e6)) +  -->
+<!--   geom_bar(stat = "identity", position = "dodge") + -->
+<!--   facet_wrap(~Exchange, scales = "free_x") + -->
+<!--   theme(axis.text.x = element_text(angle = 45)) +  -->
+<!--   scale_x_continuous(breaks = summary1$Year) + -->
+<!--   ylab("Amount of ticks (in Millions)") -->
+<!-- ``` -->
+
+<!-- # ```{r means_plot1, fig.cap="Mean, Minimum and Maximum exchange rate for the tick-by-tick data"} -->
+<!-- # ggplot(summary1, aes(x = Year)) +  -->
+<!-- #   geom_line(aes(y = Mean, linetype = "Mean")) +  -->
+<!-- #   geom_line(aes(y = Max, linetype = "Max")) + -->
+<!-- #   geom_line(aes(y = Min, linetype = "Min")) + -->
+<!-- #   scale_linetype_manual("",breaks = c("Mean", "Max", "Min"), values = c("dashed", "solid", "dashed")) + -->
+<!-- #   facet_wrap(~Exchange, scales = "free_x") + -->
+<!-- #   theme(axis.text.x = element_text(angle = 45)) +  -->
+<!-- #   scale_x_continuous(breaks = summary1$Year) + -->
+<!-- #   ylab("Exchange rate (in USD)") -->
+<!-- # ``` -->
+<!-- #  -->
+<!-- # ```{r sd_plot1, fig.cap="Range and Standard Deviation for the tick-by-tick data"} -->
+<!-- # summary1 %>%  -->
+<!-- #  # filter(Exchange == "Bitstamp") %>%  -->
+<!-- #   ggplot(aes(x = Year)) +  -->
+<!-- #   geom_line(aes(y = Stdev, linetype = "St. Dev.")) +  -->
+<!-- #   geom_line(aes(y = Range/2.5, linetype = "Range")) + -->
+<!-- #   scale_linetype_manual("", breaks = c("St. Dev.", "Range"), values = c("dashed", "solid")) + -->
+<!-- #   facet_wrap(~Exchange, scales = "free_x") + -->
+<!-- #   theme(axis.text.x = element_text(angle = 45)) +  -->
+<!-- #   scale_x_continuous(breaks = summary1$Year) + -->
+<!-- #   ylab("Standard Deviation") +  -->
+<!-- #   scale_y_continuous(sec.axis = sec_axis(~.*2.5, name = "Range")) -->
+<!-- # ``` -->
+
+```{r exch_rate, out.width = "49%", fig.show = 'hold', fig.cap="BTC-USD exchange rate on Bitstamp over Time."}
+
+# tikz("fig-exchange.tex", width = 4, height = 2.25)
+plot <- NiekPhD::na.locf_bitcoincharts(data.table::fread("Data/bitstamp/bitstampusd_day.csv")) %>% 
+  ggplot(aes(x = Time, y = Price)) + geom_line()+ ggtitle("Price over time.")
+plot
+# dev.off()
+
+NiekPhD::na.locf_bitcoincharts(data.table::fread("Data/bitstamp/bitstampusd_day.csv")) %>% 
+  ggplot(aes(x = Time, y = Price)) + geom_line() + scale_y_log10() + 
+  ylab("Log(Price)") + ggtitle("Log(Price) over Time.")
+
+
+```
+
+
+
+
+# Results
+The results are summarized in table \ref{tab:restab3} for the long and short strategies and table \ref{tab:restab5} for the only-long strategies. In both tables the left side shows the results without transaction costs while the right side shows the results with transaction costs. For the long and short strategies we see that on a daily and hourly frequency only the trading rules in 2014 and 2018 outperformed the buy and hold benchmark.
+
+```{r restabfun}
+#### old#####
+
+source("Code/find_TA_Rule.R")
+
+formatD <- function(x, k) format(round(x, k), trim=T, nsmall=k)
+freq.csv <- function(Freq){
+  paste0("Results/N=1000_hansen_q=0.2_bitstampusd_", Freq,".csv")
+}
+
+stars <- function(x){
+  stars <- NULL
+  for (i in 1:x) {
+    stars <- paste0(stars, "*")
+  }
+  stars <- paste0("\\textsuperscript{", stars, "}")
+  return(stars)
+}
+
+
+freq.csv <- function(Freq){
+  paste0("Results/N=1000_hansen_q=0.2_bitstampusd_", Freq,".csv")
+  }
+
+resfunc <- function(Freq, Ty, Be, Co){
+  tab <- read.csv(freq.csv(Freq)) %>%
+  filter(Type == Ty & Benchmark == Be & cost == Co) %>%
+  select(-c("Type", "cost", "Benchmark")) %>%
+  select(Year, best, everything())
+  
+  tab$T_value <- paste0("\\mc{",formatD(tab$T_value, 3), "}")
+  tab$Return <- paste0("\\mc{",formatD(tab$Return*100, 3), "\\%", "}")
+  
+  tab$p_l <- paste0("\\mc{",formatD(tab$p_l, 3), "}")
+  tab$p_u <- paste0("\\mc{",formatD(tab$p_u, 3), "}")
+  
+  tab$p_c <- ifelse(tab$p_c < 0.1, ifelse(tab$p_c < 0.05, 
+                                          ifelse(tab$p_c < 0.01, 
+                                                 paste0(formatD(tab$p_c, 3), stars(3)),  
+                                                 paste0(formatD(tab$p_c, 3), stars(2))),
+                                          paste0(formatD(tab$p_c, 3), stars(1))), 
+                    formatD(tab$p_c, 3))
+  
+  tab$p_c <- paste0("\\mc{",tab$p_c, "}")
+  
+
+  
+  best <- character(length = nrow(tab))
+  par <- character(length = nrow(tab))
+  for(i in 1:nrow(tab)){
+    k <- Rules[[tab$best[i]]]
+    best[i] <- k[1]
+    par[i] <- paste0("\\text{",paste(k[-1], collapse = ","),"}")
+  }
+  tab$best <- best
+
+
+  colnames(tab) <- c("Year", "Trading rule", "Transactions", "Return", "T\\textsuperscript{SPA}",
+                     "\\textit{l}", "\\textit{c}", "\\textit{u}")
+  tab <- add_column(tab, Parameters = par,.after = 2)
+  tab <- t(tab)
+  colnames(tab) <- as.character(tab[1, ])
+  return(tab[-1, ])
+
+
+}
+
+restable2 <- function(type, benchmark, Cap){
+  cbind(rbind(resfunc("day", type, benchmark, Co = 0),
+            resfunc("1hour", type, benchmark, Co = 0),
+            resfunc("30min", type, benchmark, Co = 0),
+            resfunc("15min", type, benchmark, Co = 0),
+            resfunc("10min", type, benchmark, Co = 0)),
+        character(40),
+      rbind(resfunc("day", type, benchmark, Co = 0.0025),
+            resfunc("1hour", type, benchmark, Co = 0.0025),
+            resfunc("30min", type, benchmark, Co = 0.0025),
+            resfunc("15min", type, benchmark, Co = 0.0025),
+            resfunc("10min", type, benchmark, Co = 0.0025))) %>%
+    # mutate_all(linebreak) %>%
+  kable(booktabs = T, escape = F, caption = Cap, align = "c") %>%
+  kable_styling(latex_options = "scale_down") %>%
+    add_header_above(c("", "Before transaction costs" = 6, "", "After transaction costs" = 6), italic = T) %>%
+  pack_rows("Daily", 1, 8) %>%
+  pack_rows("60 minutes", 9, 16) %>%
+  pack_rows("30 minutes", 17, 24) %>%
+  pack_rows("15 minutes", 25, 32) %>%
+  pack_rows("10 minutes", 33, 40) %>%
+    landscape()
+}
+
+
+```
+
+```{r func_restable3}
+#### old ####
+
+source("Code/find_TA_Rule.R")
+
+formatD <- function(x, k) format(round(x, k), trim=T, nsmall=k)
+freq.csv <- function(Freq){
+  paste0("Results/N=1000_hansen_q=0.2_bitstampusd_", Freq,".csv")
+}
+
+stars <- function(x){
+  stars <- NULL
+  for (i in 1:x) {
+    stars <- paste0(stars, "*")
+  }
+  stars <- paste0("\\textsuperscript{", stars, "}")
+  return(stars)
+}
+
+resfunc2 <- function(Freq, Ty, Be, Co){
+  tab <- read.csv(freq.csv(Freq)) %>%
+  filter(Type == Ty & Benchmark == Be & cost == Co) %>%
+  select(-c("Type", "cost", "Benchmark", "p_l", "p_u")) %>%
+  select(Year, best, everything())
+  
+
+  tab$T_value <- paste0("\\mc{",formatD(tab$T_value, 2), "}")
+  tab$Return <- paste0("\\mc{",formatD(tab$Return*100, 2), "\\%", "}")
+  
+  tab$p_c <- ifelse(tab$p_c < 0.1, ifelse(tab$p_c < 0.05, 
+                                          ifelse(tab$p_c < 0.01, 
+                                                 paste0(formatD(tab$p_c, 2), stars(3)),  
+                                                 paste0(formatD(tab$p_c, 2), stars(2))),
+                                          paste0(formatD(tab$p_c, 2), stars(1))), 
+                    formatD(tab$p_c, 2))
+  
+  tab$p_c <- paste0("\\mc{",tab$p_c, "}")
+  
+
+  
+  best <- character(length = nrow(tab))
+  par <- character(length = nrow(tab))
+  for(i in 1:nrow(tab)){
+    k <- Rules[[tab$best[i]]]
+    best[i] <- k[1]
+    par[i] <- paste0("\\text{",paste(k[-1], collapse = ","),"}")
+  }
+  tab$best <- best
+
+
+  
+  
+  colnames(tab) <- c("Year", "Trading rule", "Transactions", "Return", "T\\textsuperscript{SPA}",
+                     "\\textit{c}")
+  tab <- add_column(tab, Parameters = par,.after = 2)
+  tab <- t(tab)
+  colnames(tab) <- as.character(tab[1, ])
+  
+  return(tab[-1, ])
+
+
+}
+
+restable3 <- function(type, benchmark, Cap){
+  cbind(rbind(resfunc2("day", type, benchmark, Co = 0),
+            resfunc2("1hour", type, benchmark, Co = 0),
+            resfunc2("30min", type, benchmark, Co = 0),
+            resfunc2("15min", type, benchmark, Co = 0),
+            resfunc2("10min", type, benchmark, Co = 0)),
+        character(30),
+      rbind(resfunc2("day", type, benchmark, Co = 0.0025),
+            resfunc2("1hour", type, benchmark, Co = 0.0025),
+            resfunc2("30min", type, benchmark, Co = 0.0025),
+            resfunc2("15min", type, benchmark, Co = 0.0025),
+            resfunc2("10min", type, benchmark, Co = 0.0025))) %>%
+    # mutate_all(linebreak) %>%
+  kable(booktabs = T, escape = F, caption = Cap, align = "c") %>%
+  kable_styling(latex_options = c("scale_down","Hold_position")) %>%
+    add_header_above(c("", "Before transaction costs" = 6, "", "After transaction costs" = 6), italic = T) %>%
+  pack_rows("Daily", 1, 6) %>%
+  pack_rows("60 minutes", 7, 12) %>%
+  pack_rows("30 minutes", 13, 18) %>%
+  pack_rows("15 minutes", 19, 24) %>%
+  pack_rows("10 minutes", 25, 30) 
+}
+
+
+```
+
+
+```{r restab1}
+restable2("Long", "Buy and hold",
+         "Results for the trading rules with a short sale constraint, against a buy and hold benchmark.") %>%
+  add_footnote("*, **, *** for a significance level of 0.10, 0.05 and 0.01 respectively.")
+```
+
+```{r restab2}
+restable2("Both", "Buy and hold",
+         "Results for the trading rules without a short sale constraint, against a buy and hold benchmark.") %>%
+  add_footnote("*, **, *** for a significance level of 0.10, 0.05 and 0.01 respectively.")
+```
+
+```{r restab3}
+restable2("Long", "Not in market",
+         "Results for the trading rules with a short sale constraint, against a zero benchmark.") %>%
+  add_footnote("*, **, *** for a significance level of 0.10, 0.05 and 0.01 respectively.")
+```
+
+
+```{r restab4}
+restable2("Both", "Not in market",
+         "Results for the trading rules without a short sale constraint, against a zero benchmark.") %>%
+  add_footnote("*, **, *** for a significance level of 0.10, 0.05 and 0.01 respectively.")
+```
+
+
+```{r}
+restable_seperately <- function(type, benchmark, Co, Cap)
+{
+     rbind(resfunc2("day", type, benchmark, Co),
+            resfunc2("1hour", type, benchmark, Co),
+            resfunc2("30min", type, benchmark, Co),
+            resfunc2("15min", type, benchmark, Co),
+            resfunc2("10min", type, benchmark, Co)) %>% 
+      #       resfunc2("10min", type, benchmark, Co = 0.0025))) %>%
+    # mutate_all(linebreak) %>%
+  kable(booktabs = T, escape = F, caption = Cap, align = "c") %>%
+  kable_styling(latex_options = c("scale_down","Hold_position")) %>%
+    # add_header_above(c("", "Before transaction costs" = 6, "", "After transaction costs" = 6), italic = T) %>%
+  pack_rows("Daily", 1, 6) %>%
+  pack_rows("60 minutes", 7, 12) %>%
+  pack_rows("30 minutes", 13, 18) %>%
+  pack_rows("15 minutes", 19, 24) %>%
+  pack_rows("10 minutes", 25, 30) 
+}
+                             
+```
+
+```{r}
+restable_seperately("Long", "Buy and hold", 0 , "Results without transaction costs")
+```
+
+
+```{r}
+restable_seperately("Long", "Buy and hold", 0.0025 , "Results with transaction costs")
+```
+
+<!-- ```{r restab3} -->
+<!-- restable3("Both", "Buy and hold", -->
+<!--          "Results for the trading rules without a short sale constraint, against a buy and hold benchmark.") %>% -->
+<!--   add_footnote("*, **, *** for a significance level of 0.10, 0.05 and 0.01 respectively.") %>%  -->
+<!--   landscape() -->
+<!-- ``` -->
+
+
+
+<!-- ```{r restab5} -->
+<!--  restable3("Long", "Buy and hold", -->
+<!--           "Results for the only-long strategies, against a buy and hold benchmark.") %>% -->
+<!--   add_footnote("*, **, *** for a significance level of 0.10, 0.05 and 0.01 respectively.") -->
+<!-- ``` -->
+
+
+<!-- ```{r restab6} -->
+<!-- restable3("Long", "Not in market", -->
+<!--          "Results for the only-long strategies, against a zero benchmark.") %>% -->
+<!--   add_footnote("*, **, *** for a significance level of 0.10, 0.05 and 0.01 respectively.") -->
+<!-- ``` -->
+
+<!-- ```{r restab7} -->
+<!-- restable3("Both", "Not in market", -->
+<!--          "Results for the trading rules without a short sale constraint, against a zero benchmark.") %>% -->
+<!--   add_footnote("*, **, *** for a significance level of 0.10, 0.05 and 0.01 respectively.") -->
+<!-- ``` -->
+
+
+\clearpage
+# Appendix
+\appendix
+# Technical Trading Rules
+
+## Moving average rules
+$p \in \{1,2,5,10,15,20,25,50,100,150,200\}$ #lags in the short MA
+
+$q \in \{2,5,10,15,20,25,50,100,150,200,250\}$ #lags in the long MA
+
+$n \in \{1,2,5,10,15,20,25,50,100,150\}$
+
+$x \in \{0,0.05,0.1,0.5,1,5\}$ #percentage of the filter
+
+$d \in \{0,2,3,4,5\}$ #number of days that the MA should cross eachother
+
+$k \in \{0, 5,10,25\}$ #duration of holding the position (0 being as long as possible\}
+
+## Relative Strength Indicator
+
+$h \in \{5,10,15,20,25,50,100,150,200,250\}$
+
+$v \in \{10,15,20,25\}$
+
+$d \in \{1,2,5\}$
+
+$k \in \{1,5,10,25\}$
+
+
+## Support and resistance rules
+
+$x \in \{0.05,0.1,0.5,1,2.5,5,10\}$
+
+$d \in \{0,1,2,3,4,5\}$
+
+$j \in \{2,5,10,15,20,25,50,100,250\}$
+
+$k \in \{0,1,5,10,25\}$
+
+
+## Filter rules
+
+$x \in \{0.005,0.01,0.5,1,5,10,20\}$
+
+$y \in \{0.005,0.01,0.5,1,5,10,20\}$
+
+$d \in \{0,1,2,3,4,5\}$
+
+$d(x) \in \{0,1,2,3,4,5\}$
+
+$d(y) \in \{0,1,2,3,4\}$
+
+$j \in \{1,2,5,10,20\}$
+
+$k \in \{0, 5,10,15,20,25\}$
+
+
+
+
+## Channel Breakout rules
+
+$x \in \{0.05,0.1,0.5,1,5\}$
+
+$d \in \{0,1,2\}$
+
+$j \in \{5,10,15,20,25,50,100,200\}$
+
+$c \in \{0.1,0.5,1,5,10\}$
+
+$k \in \{0,1,5,10,25\}$
+
+
+
+\clearpage
+<!-- # R-code -->
+<!-- ```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE} -->
+<!-- ``` -->

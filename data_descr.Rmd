@@ -1,0 +1,140 @@
+---
+title: "Technical Analysis on Bitcoin"
+subtitle: "Data"
+author:
+  - Niek Deprez^[Ghent University]
+date: '`r format(Sys.Date(), "%d/%m/%Y")`'
+tags: [Bitcoin, Technical Analysis]
+abstract: |
+  This is the abstract.
+  
+  It consists of two paragraphs.
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: true
+  html_document:
+    df_print: paged
+    fig_captions: yes
+    number_sections: yes
+    toc: yes
+    toc_float: yes
+---
+
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+
+```{r setup, results='hide', message=FALSE, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(knitr)
+library(kableExtra)
+
+theme_set(theme_minimal()) #Set theme for ggplot plots
+
+#Set knitr chunk options in R Markdown
+knitr::opts_chunk$set(
+  cache = TRUE, #save chunk output
+  #autodep = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  echo = FALSE,
+  
+  #figure options
+  fig.align = "center",
+  fig.width = 6 ,
+  out.width = "70%",
+  fig.asp = 0.618,
+  fig.pos = 'h'
+)
+```
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r data1}
+mtgox <- data.table::fread("Data/mtgox/mtgoxusd.csv", col.names = c("Time", "Price", "Volume"))
+mtgox$Time <- anytime::utctime(mtgox$Time)
+bitstamp <- data.table::fread("Data/bitstamp/bitstampusd.csv", col.names = c("Time", "Price", "Volume"))
+bitstamp$Time <- anytime::utctime(bitstamp$Time)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+
+
+
+```{r descr_stats}
+mtgox_summary <- mtgox %>% 
+  mutate(Year = year(Time)) %>% 
+  group_by(Year) %>% 
+  summarise(N = n(), Min = min(Price, na.rm = T), 
+            Q1 = quantile(Price, 0.25, na.rm = T, names = F), 
+            Median = median(Price, na.rm = T), Mean = mean(Price, na.rm = T),
+            Q2 = quantile(Price, 0.75, na.rm = T, names = F),
+            Max = max(Price, na.rm = T), Range = IQR(Price), 
+            Stdev = sd(Price, na.rm = T))
+
+bitstamp_summary <- bitstamp %>% 
+  mutate(Year = year(Time)) %>% 
+  group_by(Year) %>% 
+  summarise(N = n(), Min = min(Price, na.rm = T), 
+            Q1 = quantile(Price, 0.25, na.rm = T, names = F), 
+            Median = median(Price, na.rm = T), Mean = mean(Price, na.rm = T),
+            Q2 = quantile(Price, 0.75, na.rm = T, names = F),
+            Max = max(Price, na.rm = T), Range = IQR(Price), 
+            Stdev = sd(Price, na.rm = T))
+
+
+summary1 <- rbind(cbind(mtgox_summary, Exchange = "Mt. Gox"), cbind(bitstamp_summary, Exchange = "Bitstamp"))
+kable(summary1[,-11], digits = 2, caption = "Year-by-year descriptive statistics of the Bitcoin-Dollar exchange rate (tick-by-tick).", booktabs = T) %>% 
+  group_rows("Mt. Gox", 1, 5) %>% 
+  group_rows("Bitstamp", 6, 13)
+```
+
+
+```{r N_barplot, fig.cap="Amount of ticks per year"}
+ggplot(summary1, aes(x = Year, y = N/1e6)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Exchange, scales = "free_x") +
+  theme(axis.text.x = element_text(angle = 45)) + 
+  scale_x_continuous(breaks = summary1$Year) +
+  ylab("Amount of ticks (in Millions)")
+```
+
+```{r means_plot1, fig.cap="Mean, Minimum and Maximum exchange rate for the tick-by-tick data"}
+ggplot(summary1, aes(x = Year)) + 
+  geom_line(aes(y = Mean, linetype = "Mean")) + 
+  geom_line(aes(y = Max, linetype = "Max")) +
+  geom_line(aes(y = Min, linetype = "Min")) +
+  scale_linetype_manual("",breaks = c("Mean", "Max", "Min"), values = c("dashed", "solid", "dashed")) +
+  facet_wrap(~Exchange, scales = "free_x") +
+  theme(axis.text.x = element_text(angle = 45)) + 
+  scale_x_continuous(breaks = summary1$Year) +
+  ylab("Exchange rate (in USD)")
+```
+
+```{r sd_plot1, fig.cap="Mean, Minimum and Maximum exchange rate for the tick-by-tick data"}
+summary1 %>% 
+ # filter(Exchange == "Bitstamp") %>% 
+  ggplot(aes(x = Year)) + 
+  geom_line(aes(y = Stdev, linetype = "St. Dev.")) + 
+  geom_line(aes(y = Range/2.5, linetype = "Range")) +
+  scale_linetype_manual("", breaks = c("St. Dev.", "Range"), values = c("dashed", "solid")) +
+  facet_wrap(~Exchange, scales = "free_x") +
+  theme(axis.text.x = element_text(angle = 45)) + 
+  scale_x_continuous(breaks = summary1$Year) +
+  ylab("Standard Deviation") + 
+  scale_y_continuous(sec.axis = sec_axis(~.*2.5, name = "Range"))
+```

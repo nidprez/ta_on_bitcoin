@@ -1,0 +1,71 @@
+#!/bin/bash -l
+
+#Settings
+#name of 
+#PBS -N ND
+#PBS -l walltime=0:30:00
+#PBS -l vmem=5gb
+#PBS -l ncpus=24
+#PBS -m abe
+#PBS -M niek.deprez@ugent.be
+
+#load R module
+module load R/3.6.0-intel-2019a
+
+#Set parameters
+exchange=bitstamp
+currency=usd
+Freq=day
+q=0.2
+year=2013
+long=FALSE
+cost=0.0025
+#True if you compare against buy and hold benchmark
+hodl=TRUE
+N=1000
+ncpus=24
+
+export exchange=$exchange
+export currency=$currency
+export Freq=$Freq
+export q=$q
+export year=$year
+export long=$long
+export cost=$cost
+export hodl=$hodl
+export N=$N
+export ncpus=$ncpus
+
+echo exchange=$exchange
+echo currency=$currency
+echo Freq=$Freq
+echo q=$q
+echo year=$year
+echo long=$long
+echo cost=$cost
+echo hodl=$hodl
+echo N=$N
+echo ncpus=$ncpus
+
+# Name working directory
+ORIGDIR=$PBS_O_WORKDIR
+cd $ORIGDIR
+#WORKDIR=$VSC_SCRATCH_CLUSTER/$PBS_JOBID
+
+
+echo Hostname: $(hostname)
+echo ORIGDIR: $ORIGDIR
+#echo WORKDIR: $WORKDIR
+
+#mkdir -p $WORKDIR
+#cd $WORKDIR
+
+#cp -a $ORIGDIR/* $WORKDIR/
+
+Rscript Hansen_2005_HPC_cluster.R
+
+
+#cp * $ORIGDIR
+
+#cd
+#rm -Rf $WORKDIR
