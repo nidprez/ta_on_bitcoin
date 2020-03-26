@@ -134,12 +134,12 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
   
   print(paste("Saving Moving average Rules at", Sys.time()))
   readr::write_csv(as.data.frame(do.call(cbind, Rules)), 
-                   path = paste0(wdir, exchange, currency,"_", Freq, "MA_Rules.csv"))
+                   path = paste0(wdir, exchange, currency,"_", Freq, "_marules.csv"))
   print(paste("Moving average Rules Saved at", Sys.time()))
   
 }else{
   print("ERROR: Data was not found in the working directory")
   print(dir)
-  print(paste("calculation unsuccesful for CB Rules at", Sys.time()))
+  print(paste("calculation unsuccesful for MA Rules at", Sys.time()))
 }
 

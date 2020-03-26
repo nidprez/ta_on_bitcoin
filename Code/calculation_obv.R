@@ -10,20 +10,20 @@ library(parallel)
 library(tidyverse)
 
 # General Document options ####
-exchange <- "bitstamp"
-currency <- "usd"
-Freq <- "day"
+# exchange <- "bitstamp"
+# currency <- "usd"
+# Freq <- "day"
 
 wdir <- paste0(getwd(), "/Data/", exchange, "/")
 filename <- paste0(exchange, currency, "_", Freq, ".csv")
-if((filename %in% list.files(wdir))){ #test if the directory is right
+if(filename %in% list.files(wdir)){ #test if the directory is right
   dir <- paste0(wdir, filename)
   
   
   # Import Data ####
-  data <- na.locf_bitcoincharts(data.table::fread(dir), F, F,T,  F)
+  data <- na.locf_bitcoincharts(data.table::fread(dir), F, F, F,  F)
   P <- data$Price
-  return <- data$Ret
+  # return <- data$Ret
   volume <- data$VolumeCurr
   rm(data)
   
@@ -32,7 +32,6 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
   # specs of the Moving Average Rules
   p <- c(2,5,10,15,20,25,50,100,150,200) #lags in the short MA
   q <- c(2,5,10,15,20,25,50,100,150,200,250) #lags in the long MA
-  # n <- c(2,5,10,15,20,25,50,100,150)
   x <- c(0,0.01,0.05) #percentage of the filter
   d <- c(0,2,3,4,5) #number of days that the MA should cross eachother
   k <- c(0, 5,10) #duration of holding the position (0 being as long as possible)
@@ -43,37 +42,12 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
   rownames(MA_rules) <- NULL
   
   #calculate all the possible moving averages
-  MAs <- sapply(MA_lags, function(l){zoo::rollapply(P, l, 
+  MAs <- sapply(MA_lags, function(l){zoo::rollapply(obv, l, 
                                                     function(x) mean(x, na.rm = T), 
                                                     fill = NA, align = "right")})
-  
-  
-  Rule_list <- lapply(seq_len(nrow(MA_rules)), function(l)MA_rules[l, ])
-  
-  no_cores <- detectCores() - 1
-  cl <- makeCluster(no_cores)
-  clusterExport(cl, list("MAs", "calculate_crossingMA"))
-  clusterEvalQ(cl, library(zoo))
-  print(paste("Calculating Moving average Rules at", Sys.time()))
-  
-  Rules <- parLapply(cl, Rule_list, function(l)calculate_crossingMA(MAs[ ,as.character(l[1])], 
-                                                                    MAs[ ,as.character(l[2])], 
-                                                                    as.numeric(l[3]), 
-                                                                    as.numeric(l[4]), 
-                                                                    as.numeric(l[5])))
-  
-  print(paste("Moving average Rules Calculated at", Sys.time()))
-  stopCluster(cl)
-  
-  print(paste("On-balance volume averages Rules at", Sys.time()))
-  readr::write_csv(as.data.frame(do.call(cbind, Rules)), 
-                   path = paste0(wdir, exchange, currency,"_", Freq, "MA_Rules.csv"))
-  print(paste("On-balance volume averages Saved at", Sys.time()))
-  
-  
-  
   colnames(MAs) <- as.character(MA_lags)
   rm(MA_lags)
+  
   
   
   calculate_crossingMA <- function(MAS, MAL, x, d, k){
@@ -143,12 +117,31 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
     return(Rule)
   }
   
+  Rule_list <- lapply(seq_len(nrow(MA_rules)), function(l)MA_rules[l, ])
   
+  no_cores <- detectCores() - 1
+  cl <- makeCluster(no_cores)
+  clusterExport(cl, list("MAs", "calculate_crossingMA"))
+  clusterEvalQ(cl, library(zoo))
+  print(paste("On-balance volume averages at", Sys.time()))
   
+  Rules <- parLapply(cl, Rule_list, function(l)calculate_crossingMA(MAs[ ,as.character(l[1])], 
+                                                                    MAs[ ,as.character(l[2])], 
+                                                                    as.numeric(l[3]), 
+                                                                    as.numeric(l[4]), 
+                                                                    as.numeric(l[5])))
+  
+  print(paste("On-balance volume averages Calculated at", Sys.time()))
+  stopCluster(cl)
+  
+  print(paste("On-balance volume averages Rules at", Sys.time()))
+  readr::write_csv(as.data.frame(do.call(cbind, Rules)), 
+                   path = paste0(wdir, exchange, currency,"_", Freq, "_obvrules.csv"))
+  print(paste("On-balance volume averages Saved at", Sys.time()))
   
   
 }else{
   print("ERROR: Data was not found in the working directory")
   print(dir)
-  print(paste("calculation unsuccesful for CB Rules at", Sys.time()))
+  print(paste("calculation unsuccesful for OBV Rules at", Sys.time()))
 }

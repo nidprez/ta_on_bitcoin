@@ -131,11 +131,11 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
   #save the rules in csv
   print(paste("Saving RSI at", Sys.time()))
   write_csv(as.data.frame(do.call(cbind, Rules)), 
-            path = paste0(wdir, exchange, currency,"_", Freq, "RSI_Rules.csv"))
+            path = paste0(wdir, exchange, currency,"_", Freq, "_rsirules.csv"))
   print(paste("RSI Rules Saved at", Sys.time()))
   
 }else{
   print("ERROR: Data was not found in the working directory")
   print(dir)
-  print(paste("calculation unsuccesful for CB Rules at", Sys.time()))
+  print(paste("calculation unsuccesful for RSI Rules at", Sys.time()))
 }

@@ -20,8 +20,6 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
   dir <- paste0(wdir, filename)
   
   
-  print("test")
-  
   # Import Data ####
   data <- na.locf_bitcoincharts(data.table::fread(dir), F, F, F, F)
   P <- data$Price
@@ -51,13 +49,6 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
   colnames(Low) <- as.character(j)
   colnames(High) <- as.character(j)
   
-  # x = 1
-  # j = 5
-  # k = 5
-  # d = 1
-  # c = 10
-  # Low <- Low[,3]
-  # High <- High[,3]
   
   calculate_CB <- function(Low, High, x, d, k, c, P){
     x <- x/100
@@ -166,7 +157,7 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
   
   print(paste("Saving CB Rules at", Sys.time()))
   readr::write_csv(as.data.frame(do.call(cbind, Rules)), 
-                   path = paste0(wdir, exchange, currency,"_", Freq, "CB_Rules.csv"))
+                   path = paste0(wdir, exchange, currency,"_", Freq, "_cbrules.csv"))
   print(paste("CB Rules Saved at", Sys.time()))
 }else{
   print("ERROR: Data was not found in the working directory")

@@ -273,7 +273,7 @@ if((filename %in% list.files(wdir))){
   
   print(paste("Saving filter2 Rules at", Sys.time()))
   readr::write_csv(as.data.frame(do.call(cbind, Rules)), 
-                   path = paste0(wdir, exchange, currency,"_", Freq, "filter2_Rules.csv"))
+                   path = paste0(wdir, exchange, currency,"_", Freq, "_filter2rules.csv"))
   print(paste("filter2 Rules Saved at", Sys.time()))
   
   
@@ -300,11 +300,11 @@ if((filename %in% list.files(wdir))){
   
   print(paste("Saving filter Rules at", Sys.time()))
   readr::write_csv(as.data.frame(do.call(cbind, Rules)), 
-                   path = paste0(wdir, exchange, currency,"_", Freq, "filter_Rules.csv"))
+                   path = paste0(wdir, exchange, currency,"_", Freq, "_filterrules.csv"))
   print(paste("filter Rules Saved at", Sys.time()))
   
 }else{
   print("ERROR: Data was not found in the working directory")
   print(dir)
-  print(paste("calculation unsuccesful for CB Rules at", Sys.time()))
+  print(paste("calculation unsuccesful for filter Rules at", Sys.time()))
 }

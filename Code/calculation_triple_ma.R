@@ -114,7 +114,7 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
   
   print(paste("Saving Moving average Rules at", Sys.time()))
   readr::write_csv(as.data.frame(do.call(cbind, Rules)), 
-                   path = paste0(wdir, exchange, currency,"_", Freq, "triple_MA_Rules.csv"))
+                   path = paste0(wdir, exchange, currency,"_", Freq, "_triple_marules.csv"))
   print(paste("Moving average Rules Saved at", Sys.time()))
   
 }else{
