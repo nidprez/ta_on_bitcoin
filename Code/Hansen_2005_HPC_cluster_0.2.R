@@ -10,7 +10,7 @@ mydiff <- function(x, lag = 1, differences = 1){
   return(c(rep(NA, lag), a))
 }
 
-na.locf_bitcoincharts <- function(data, Anytime = TRUE, HighLow = TRUE, LogRet = TRUE, Year = FALSE){
+na.locf_bitcoincharts <- function(data, Anytime = TRUE, HighLow = F, LogRet = TRUE, Year = FALSE, Semester = FALSE){
   
   data$Price <- zoo::na.locf(data$Price)
   data$VolumeCurr[is.na(data$VolumeCurr)] <- 0
@@ -34,7 +34,10 @@ na.locf_bitcoincharts <- function(data, Anytime = TRUE, HighLow = TRUE, LogRet =
       mutate(Year = lubridate::year(data$Time)) #add factor containing the year
   }
   
-  
+  if(Semester){
+      data <- data %>%
+        mutate(Semester = lubridate::semester(data$Time)) #add factor containing the year
+  }
   return(data)
 }
 
@@ -62,27 +65,27 @@ long=T
 TC=0.0025
 hodl=T
 N=1000
-
+semester = 1
 
 print(parallel::detectCores())
 
 wdir <- paste0(getwd(),"/Data/", exchange)
 dir <- paste0(wdir, "/", exchange, currency, "_", Freq, ".csv")
 
-dir1 <- paste0(wdir, "/", exchange, currency, "_", Freq, "MA_Rules.csv")
-dir2 <- paste0(wdir, "/", exchange, currency, "_", Freq, "triple_MA_Rules.csv")
-dir3 <- paste0(wdir, "/", exchange, currency, "_", Freq, "RSI_Rules.csv")
-dir4 <- paste0(wdir, "/", exchange, currency, "_", Freq, "SR_Rules.csv")
-dir5 <- paste0(wdir, "/", exchange, currency, "_", Freq, "filter_Rules.csv")
-dir6 <- paste0(wdir, "/", exchange, currency, "_", Freq, "filter2_Rules.csv")
-dir7 <- paste0(wdir, "/", exchange, currency, "_", Freq, "CB_Rules.csv")
+dir1 <- paste0(wdir, "/", exchange, currency, "_", Freq, "_marules.csv")
+dir2 <- paste0(wdir, "/", exchange, currency, "_", Freq, "_rsirules.csv")
+dir3 <- paste0(wdir, "/", exchange, currency, "_", Freq, "_filterrules.csv")
+dir4 <- paste0(wdir, "/", exchange, currency, "_", Freq, "_filter2rules.csv")
+dir5 <- paste0(wdir, "/", exchange, currency, "_", Freq, "_supresrules.csv")
+dir6 <- paste0(wdir, "/", exchange, currency, "_", Freq, "_cbrules.csv")
+dir7 <- paste0(wdir, "/", exchange, currency, "_", Freq, "_obvrules.csv")
 
 # Import Data ####
-data <- na.locf_bitcoincharts(data.table::fread(dir), Year = T)
+data <- na.locf_bitcoincharts(data.table::fread(dir), Year = T, Semester = T)
 
 
 
-x <- which(data$Year == year)
+x <- which(data$Year == year & data$Semester == semester)
 start <- x[1]
 stop <- tail(x, 1)
 data <- data[start:stop, ]
@@ -236,8 +239,10 @@ test1[is.na(test1)] <- 0
 T_spa <- max(test1, 0)
 
 ttest <- apply(as.matrix(1:s), 1, function(x) mean((sqrt(n)*f_bar[x])<= sqrt(n)*(f_mean_boot[x, ]-f_bar[x])))
-summary(p.adjust(ttest2, method = "holm"))
+summary(p.adjust(ttest, method = "holm"))
 sample1 <- sample(1:s, round(s*0.95))
+
+sum(pt(-abs(f_bar/(omega/sqrt(nrow(data)))), df = rep(nrow(data), length(f_bar))) < 0.1)
 
 summary(ttest[-sample1])
 

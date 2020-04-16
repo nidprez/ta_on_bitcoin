@@ -15,7 +15,7 @@ library(tidyverse)
 # currency <- "usd"
 # Freq <- "1hour"
 
-wdir <- paste0(getwd(), "/Data/", exchange, "/")
+wdir <- paste0(getwd(), "/Data/", exchange, "/", Freq, "/")
 filename <- paste0(exchange, currency, "_", Freq, ".csv")
 if((filename %in% list.files(wdir))){ #test if the directory is right
   dir <- paste0(wdir, filename)

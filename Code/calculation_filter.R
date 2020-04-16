@@ -15,7 +15,7 @@ library(tidyverse)
 # currency <- "usd"
 # Freq <- "day"
 
-wdir <- paste0(getwd(), "/Data/", exchange, "/")
+wdir <- paste0(getwd(), "/Data/", exchange, "/", Freq, "/")
 filename <- paste0(exchange, currency, "_", Freq, ".csv")
 if((filename %in% list.files(wdir))){
   dir <- paste0(wdir, filename)
@@ -183,6 +183,7 @@ if((filename %in% list.files(wdir))){
     #decrease k with 1 if larger than 0 in order to have the right holding period.
     #i:i + k is actually 1 period longer than k (for example: k = 1, i = 5 => 5:6 
     # is a holding period of 2 instead of 1)
+    k2 <- k
     k <- ifelse(k > 0, k - 1, k)
     
     #Determine where P is below Low and above High
@@ -235,7 +236,7 @@ if((filename %in% list.files(wdir))){
     }
     
     
-    if(!k){ 
+    if(!k2){ 
       Rule <- zoo::na.locf0(Rule) #fill in the blanks
     }
     

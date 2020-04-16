@@ -3,6 +3,7 @@
 ######################################
 
 #all rules for day,1h,30m,15m takes +-30min to run
+# not necessary to run all the results
 
 #libraries ####
 library(parallel)
@@ -43,7 +44,7 @@ na.locf_bitcoincharts <- function(data, Anytime = TRUE, HighLow = TRUE, LogRet =
 }
 
 calc_return <- function(rule, b_ret){
-  ret <- rule*b_ret
+  ret <- (-rule)*b_ret
   return(ret)
 }
 
@@ -116,11 +117,18 @@ for(i in freq){
   }
 }
 
-lapply(equal_rules, function(l)sapply(l, function(x)round(mean(x), 2)))
+# results ####
+
+#number of double rules
+lapply(equal_rules, function(l)sapply(l, function(x)round(median(x), 2)))
+
+#check percentage of outperforming rules
 lapply(result_mean, function(l)sapply(l, function(x)round(sum(x>0)/length(x), 2)))
 
-
-sapply(result_mean$day, function(x)round(mean(x*365), 2))
+# annualized mean return
+sapply(result_mean$day,     function(x)round(mean(x*365), 2))
 sapply(result_mean$`1hour`, function(x)round(mean(x*365*24), 2))
 sapply(result_mean$`30min`, function(x)round(mean(x*365*24*2), 2))
 sapply(result_mean$`15min`, function(x)round(mean(x*365*24*2*2), 2))
+
+
