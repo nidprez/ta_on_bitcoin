@@ -59,7 +59,7 @@ get_histdata_bitcoincharts <- function(exchange, currency, dir = NULL){
   return(data)
 }
 
-# data <- get_histdata_bitcoincharts(exchange, currency, dir)
+data <- get_histdata_bitcoincharts(exchange, currency, dir)
 
 #clean data - Brownlees & Gallo (2006) ####
 data <- data[!(data$Volume <= 0), ]
@@ -68,19 +68,18 @@ data <- data[!(data$Volume <= 0), ]
 data <- data %>% 
   group_by(Time) %>% 
   summarise(Price = median(Price), Volume = sum(Volume)) %>% 
-  mutate(Year = lubridate::year(Time))
-
+  mutate(Year = lubridate::year(Time), Date = anytime::utcdate(Time))
 
 #determine which data points could be outliers
 p_list <- data %>% 
-  select(Price, Year) %>% 
-  group_split(Year, keep = F)
+  select(Price, Date) %>% 
+  group_split(Date, keep = F)
 
-names(p_list) <- unique(data$Year)
+names(p_list) <- unique(data$Date)
 
 
-clean_data <- function(data, delta, year){
-  
+clean_data <- function(data, delta, k, gamma){
+
   #predefine function for loop
   closest <- function(x, k, k2, n){
     if(x <= k2){
@@ -91,30 +90,41 @@ clean_data <- function(data, delta, year){
       c((x-k2):(x-1), (x+1):(x+k2))
     }
   }
-  
+
   #variables used
-  if(year <= 2013){
-    gamma <- 0.5
-    k <- 40
-  }else if(year <= 2016){
-    gamma <- 1.5
-    k <- 60
-  }else{
-    gamma <- 10
-    k <- 60
-  }
-  
+  # if(year <= 2013){
+  #   gamma <- 0.5
+  #   k <- 40
+  # }else if(year <= 2016){
+  #   gamma <- 1.5
+  #   k <- 60
+  # }else{
+  #   gamma <- 10
+  #   k <- 60
+  # }
+
   k2 <- k/2
   n <- length(data)
-  
+
   outlier <- logical(n)
-  
-  
-  for (i in 1:n){
-    p <- asbio::trim.me(data[closest(i, k, k2, n)], delta)
-    outlier[i] <- ifelse(abs(data[i] - mean(p)) < (3*(sd(p) + gamma)), F, T)
-    # if(i%%10000){print(paste(round(i/n*100, 4), "% done"))}
+
+
+  if(n == 1){
+    outlier <- F
+  }else if(n <= k){
+    for (i in 1:n){
+      p <- asbio::trim.me(data[-i], delta) #get delta trimmed vector
+      sdev <- sd(p)
+      outlier[i] <- ifelse(abs(data[i] - mean(p)) < (3*ifelse(is.na(sdev), 0, sdev) + gamma), F, T) #Brownlee & Gallo formula
+    }
+  }else{
+    for (i in 1:n){
+      p <- asbio::trim.me(data[closest(i, k, k2, n)], delta)
+      sdev <- sd(p)
+      outlier[i] <- ifelse(abs(data[i] - mean(p)) < (3*ifelse(is.na(sdev), 0, sdev) + gamma), F, T)
+    }
   }
+  
   return(outlier)
 }
 
@@ -124,9 +134,13 @@ clusterExport(cl, list("p_list", "clean_data"))
 clusterEvalQ(cl, c(library(asbio)))
 print(paste("Calculating outliers at", Sys.time()))
 
+# outlier <- parLapply(cl, seq_along(p_list), 
+#                    function(i, l, n){clean_data(l[[i]]$Price, 0.05, as.numeric(n[[i]]))}, 
+#                    l = p_list, n = names(p_list))
+
 outlier <- parLapply(cl, seq_along(p_list), 
-                   function(i, l, n){clean_data(l[[i]]$Price, 0.05, as.numeric(n[[i]]))}, 
-                   l = p_list, n = names(p_list))
+                     function(i, l, n){clean_data(l[[i]]$Price, 0.05, 40, 1)}, 
+                     l = p_list)
 
 print(paste("outliers Calculated at", Sys.time()))
 stopCluster(cl)
@@ -138,12 +152,17 @@ outliers <- data[outlier, ]
 readr::write_csv(outliers, 
                  path = paste0(dir, exchange, currency, "_outliers.csv"))
 
-data <- data[!outlier, -4]
+data <- data[!outlier, c(1:3)]
 
 readr::write_csv(data, 
                  path = paste0(dir, exchange, currency, "_clean.csv"))
 
 # load clean data ####
+exchange <- "bitstamp"
+currency <- "usd"
+
+dir <- paste0(getwd(), "/Data/", exchange, "/")
+
 data <- read_csv(paste0(dir, "bitstampusd_clean.csv"))
 
 

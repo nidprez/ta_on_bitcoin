@@ -70,7 +70,7 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
     
     #Determine where P is below Low and above High
     Index1 <- which((High <= ((1 + c) * Low)) & (P >= ub | P <= lb))
-    
+    browser()
     if(length(Index1) == 0){
       Rule <- rep(0, N)
       return(Rule)

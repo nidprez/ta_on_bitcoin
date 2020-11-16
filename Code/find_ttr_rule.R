@@ -3,12 +3,17 @@
   }
   
   # MA Rules ####
+  # specs of the Moving Average Rules
+  
+  
   p <- c(1,2,5,10,15,20,25,50,100,150,200) #lags in the short MA
   q <- c(2,5,10,15,20,25,50,100,150,200,250) #lags in the long MA
-  x <- c(0,0.05,0.1,0.5,1,5) #percentage of the filter
+  # n <- c(2,5,10,15,20,25,50,100,150)
+  x <- c(0,0.0005,0.001,0.005,0.01,0.05) #percentage of the filter
   d <- c(0,2,3,4,5) #number of days that the MA should cross eachother
   k <- c(0, 5,10,25) #duration of holding the position (0 being as long as possible)
   
+  MA_lags <- unique(c(p,q)) #get the individual MA lags
   MA_rules <- expand.grid(rule = "MA", p = p, q=q, x=x, d=d, k=k, KEEP.OUT.ATTRS = F, stringsAsFactors = F)
   MA_rules <- MA_rules[!(MA_rules$p >= MA_rules$q),] #delete all instances where the short MA is equal or longer than the long MA
   rownames(MA_rules) <- NULL
@@ -18,23 +23,22 @@
   # Triple MA Rules ####
   
   # specs of the Moving Average Rules
-  p <- c(2,5,10,15,20,25,50,100,150,200) #lags in the short MA
-  q <- c(2,5,10,15,20,25,50,100,150,200,250) #lags in the long MA
-  n <- c(1,2,5,10,15,20,25,50,100,150)
-  x <- c(0,0.05,0.1,0.5,1,5) #percentage of the filter
-  d <- c(0,2,3,4,5) #number of days that the MA should cross eachother
-  
-  triple_MA_rules <- expand.grid(rule = "Triple MA",n=n, p = p, q=q, x=x, d=d, KEEP.OUT.ATTRS = F, stringsAsFactors = F)
-  triple_MA_rules <- triple_MA_rules[!(triple_MA_rules$p >= triple_MA_rules$q),] #delete all instances where the short MA is equal or longer than the long MA
-  triple_MA_rules <- triple_MA_rules[!(triple_MA_rules$n >= triple_MA_rules$p),] #delete all instances where the short MA is equal or longer than the long MA
-  triple_MA_rules <- triple_MA_rules[!(triple_MA_rules$n == 1),] #delete all instances where the short MA is equal or longer than the long MA
-  rownames(triple_MA_rules) <- NULL
-  
-  triple_MA_rules <- my_split(triple_MA_rules)
+  # p <- c(2,5,10,15,20,25,50,100,150,200) #lags in the short MA
+  # q <- c(2,5,10,15,20,25,50,100,150,200,250) #lags in the long MA
+  # n <- c(1,2,5,10,15,20,25,50,100,150)
+  # x <- c(0,0.05,0.1,0.5,1,5) #percentage of the filter
+  # d <- c(0,2,3,4,5) #number of days that the MA should cross eachother
+  # 
+  # triple_MA_rules <- expand.grid(rule = "Triple MA",n=n, p = p, q=q, x=x, d=d, KEEP.OUT.ATTRS = F, stringsAsFactors = F)
+  # triple_MA_rules <- triple_MA_rules[!(triple_MA_rules$p >= triple_MA_rules$q),] #delete all instances where the short MA is equal or longer than the long MA
+  # triple_MA_rules <- triple_MA_rules[!(triple_MA_rules$n >= triple_MA_rules$p),] #delete all instances where the short MA is equal or longer than the long MA
+  # triple_MA_rules <- triple_MA_rules[!(triple_MA_rules$n == 1),] #delete all instances where the short MA is equal or longer than the long MA
+  # rownames(triple_MA_rules) <- NULL
+  # 
+  # triple_MA_rules <- my_split(triple_MA_rules)
   
   # RSI Rules ####
-  
-  h <- c(5,10,15,20,25,50,100,150,200,250)
+  h <- c(5,10,14,20,25,50,100,150,200,250)
   v <- c(10,15,20,25)
   d <- c(1,2,5)
   k <- c(0, 1,5,10,25)
@@ -51,14 +55,15 @@
   j <- c(2,5,10,15,20,25,50,100,250)
   k <- c(0,1,5,10,25)
   
+
   SR_rules <- expand.grid(rule = "S\\&R", x = x, d = d, j = j, k = k, KEEP.OUT.ATTRS = F, stringsAsFactors = F)
   rownames(SR_rules) <- NULL
   
   SR_rules <- my_split(SR_rules)
   
   # Filter Rules ####
-  x <- c(0.005,0.01,0.5,1,5,10,20)
-  y <- c(0.005,0.01,0.5,1,5,10,20)
+  x <- c(0.05,0.1,0.5,1,5,10,20)
+  y <- c(0.05,0.1,0.5,1,5,10,20)
   d <- c(0:5)
   dx <- 0:5
   dy <- 0:4
@@ -90,7 +95,30 @@
   
   CB_rules <- my_split(CB_rules)
   
-  # Rule List ####
-  Rules <- c(MA_rules, triple_MA_rules, RSI_rules, SR_rules, filter_rules2, filter_rules, CB_rules)
+  # OBV Rules ####
+  # specs of the Moving Average Rules
+  p <- c(2,5,10,15,20,25,50,100,150,200) #lags in the short MA
+  q <- c(2,5,10,15,20,25,50,100,150,200,250) #lags in the long MA
+  x <- c(0,0.01,0.05) #percentage of the filter
+  d <- c(0,2,3,4,5) #number of days that the MA should cross eachother
+  k <- c(0, 5,10) #duration of holding the position (0 being as long as possible)
   
-  rm(MA_rules, triple_MA_rules, RSI_rules, SR_rules, filter_rules2, filter_rules, CB_rules)
+  OBV_lags <- unique(c(p,q)) #get the individual MA lags
+  OBV_rules <- expand.grid(rule = "OBV", p = p, q=q, x=x, d=d, k=k, KEEP.OUT.ATTRS = F, stringsAsFactors = F)
+  OBV_rules <- OBV_rules[!(OBV_rules$p >= OBV_rules$q),] #delete all instances where the short OBV is equal or longer than the long OBV
+  rownames(OBV_rules) <- NULL
+  
+  OBV_rules <- my_split(OBV_rules)
+  
+  # Rule List ####
+  Rules <- c(MA_rules, 
+             # triple_MA_rules, 
+             RSI_rules, filter_rules, filter_rules2, SR_rules, 
+             CB_rules, OBV_rules)
+  
+  rm(MA_rules, 
+     # triple_MA_rules, 
+     RSI_rules, SR_rules, filter_rules2, filter_rules, CB_rules, OBV_rules)
+
+  
+  prop.table(table(nonzero, sapply(Rules, function(x) x$rule)), 2)

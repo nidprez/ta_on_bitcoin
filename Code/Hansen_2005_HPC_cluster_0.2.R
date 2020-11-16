@@ -10,7 +10,6 @@ mydiff <- function(x, lag = 1, differences = 1){
   a = diff(x, lag, differences)
   return(c(rep(NA, lag), a))
 }
-
 na.locf_bitcoincharts <- function(data, Anytime = TRUE, HighLow = F, LogRet = TRUE, Year = FALSE, Semester = FALSE){
   
   data$Price <- zoo::na.locf(data$Price)
