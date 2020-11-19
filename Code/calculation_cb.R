@@ -10,9 +10,9 @@ library(parallel)
 library(tidyverse)
 
 # General Document options ####
-exchange <- "bitstamp"
-currency <- "usd"
-Freq <- "day"
+# exchange <- "bitstamp"
+# currency <- "usd"
+# Freq <- "day"
 
 wdir <- paste0(getwd(), "/Data/", exchange, "/", Freq, "/")
 filename <- paste0(exchange, currency, "_", Freq, ".csv")
@@ -25,11 +25,11 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
   P <- data$Price
   rm(data)
   
-  x <- c(0, 0.05,0.1,0.5,1)
+  x <- c(0.05,0.1,0.5,1, 5)
   d <- c(0:2)
-  j <- c(5,10,15,20,25,50,100,200)
-  c <- c(0.1,0.5,1,5,10)
-  k <- c(0,1,5,10,25)
+  j <- c(6,12,18,24,36,72,120,168)
+  c <- c(0.5,1,5,10, 15)
+  k <- c(0,1,6,12,24)
   
   CB_rules <- expand.grid(x = x, d = d, j = j, k = k, c = c, KEEP.OUT.ATTRS = F)
   
@@ -81,10 +81,9 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
     }
     
     # test <- cbind(Low, P, High, ub, lb, Rule)
-    
-    if(length(lb[Index1[1]-1])==0){
-      Index1 <- Index1[-1]
-    }
+    # if(length(lb[Index1[1]-1])==0 | is.na(lb[Index1[1]-1])){
+    #   Index1 <- Index1[-1]
+    # }
     
     
     #Predefine Rule for quickness
@@ -98,12 +97,12 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
       
       if(i + d > test1){ #actual check
         if( (i + d + k) <= N){
-          
-          if((P[i - 1] >= lb[i - 1] | Rule[i - 1] == -1) & all(P[i:(i+d)] <= lb[i])){ 
+
+          if(all(P[i:(i+d)] <= lb[i])){ 
             Rule[(i+d):(i+d+k)] <- -1
             test1 <- i + d + k
             
-          }else if(P[i - 1] <= ub[i - 1] & all(P[i:(i+d)] >= ub[i])){
+          }else if(all(P[i:(i+d)] >= ub[i])){
             Rule[(i+d):(i+d+k)] <- 1
             test1 <- i + d + k
           }
@@ -111,11 +110,11 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
           
         }else if( (i + d)<= N){
           
-          if(P[i - 1] >= lb[i - 1] & all(P[i:(i+d)] <= lb[i])){
+          if(all(P[i:(i+d)] <= lb[i])){
             Rule[(i+d):N] <- -1
             test1 <- i + d + k
             
-          }else if(P[i - 1] <= ub[i - 1] & all(P[i:(i+d)] >= ub[i])){
+          }else if(all(P[i:(i+d)] >= ub[i])){
             Rule[(i+d):N] <- 1
             test1 <- i + d + k
           }
