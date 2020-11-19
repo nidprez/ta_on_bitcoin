@@ -10,9 +10,9 @@ library(parallel)
 library(tidyverse)
 
 # General Document options ####
-# exchange <- "bitstamp"
-# currency <- "usd"
-# Freq <- "day"
+exchange <- "bitstamp"
+currency <- "usd"
+Freq <- "day"
 
 wdir <- paste0(getwd(), "/Data/", exchange, "/", Freq, "/")
 filename <- paste0(exchange, currency, "_", Freq, ".csv")
@@ -25,7 +25,7 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
   P <- data$Price
   rm(data)
   
-  x <- c(0.05,0.1,0.5,1,5)
+  x <- c(0, 0.05,0.1,0.5,1)
   d <- c(0:2)
   j <- c(5,10,15,20,25,50,100,200)
   c <- c(0.1,0.5,1,5,10)
@@ -66,11 +66,15 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
     ub <- (1 + x) * (1 + c) * Low
     lb <- (1 - x) * (1 - c) * High
     
+    ub2 <- (1 + c) * Low
+    lb2 <- (1 - c) * High
+    
     # Index1 <- which((High <= ((1 + c) * Low)))
     
     #Determine where P is below Low and above High
-    Index1 <- which((High <= ((1 + c) * Low)) & (P >= ub | P <= lb))
-    browser()
+    Index1 <- which((lb2 <= ub2) & (P >= ub | P <= lb))
+    # browser()
+    # browser()
     if(length(Index1) == 0){
       Rule <- rep(0, N)
       return(Rule)
@@ -78,7 +82,7 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
     
     # test <- cbind(Low, P, High, ub, lb, Rule)
     
-    if(is.na(lb[Index1[1]-1])){
+    if(length(lb[Index1[1]-1])==0){
       Index1 <- Index1[-1]
     }
     
@@ -95,7 +99,7 @@ if((filename %in% list.files(wdir))){ #test if the directory is right
       if(i + d > test1){ #actual check
         if( (i + d + k) <= N){
           
-          if(P[i - 1] >= lb[i - 1] & all(P[i:(i+d)] <= lb[i])){
+          if((P[i - 1] >= lb[i - 1] | Rule[i - 1] == -1) & all(P[i:(i+d)] <= lb[i])){ 
             Rule[(i+d):(i+d+k)] <- -1
             test1 <- i + d + k
             
